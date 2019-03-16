@@ -351,11 +351,13 @@
       position: relative;
       height: 100%;
       object-fit: fill;
+      margin: 0;
+      padding: 0;
   }
 </style>
 
 <body>
-  <div class=video_wrap>
+  <div class="video_wrap">
     <video id="example_video_1" class="video-js vjs-default-skin vjs-big-play-centered" preload="auto"
       x-webkit-airplay="true" x5-video-player-type="h5" x5-video-player-fullscreen="true" x5-playsinline="true" webkit-playsinline="true" playsinline="true">
       <!-- <source src="http://fd.jktwo.com/live/40871_7129c404c6a772a26414a0c6ec6ad85b.m3u8" type="application/x-mpegURL"> -->
@@ -530,6 +532,9 @@
   var money = 0  //充值金币
   var Balance = 0
   var onlineStr = ''
+  var u = navigator.userAgent, app = navigator.appVersion;
+  var isAndroid = u.indexOf('Android') > -1 || u.indexOf('Linux') > -1; //g
+  var isIOS = !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/); //ios终端
   function getOpenid() {
       $http({
         url: '/auth/user/v2/wechat/h5/get/openid',
@@ -589,7 +594,7 @@
           // });
         } else {
           // alert('调起支付失败'+ JSON.stringify(res))
-          mui.toast('支付失败，请稍后')
+          mui.toast('支付失败，请重试')
         }
       },
       error: function (err) {
@@ -620,16 +625,19 @@
       // },
       data: {
         "id": 6,
-        "token": localStorage.getItem('token')
+        "token": "q1hGss70hPjyf4aLB60hePdxvRe2Gq9RrqkHxB1wT7EzVc06ttqXOPl2MQ6/JXfex+MREYEsmPY6wVo8mauHJIARe0z0kBd4iraBsj/KUSbusKQoyNVRZggincgal3hWmbafnonOedlpRbyV7/1OSONB+4xi5ob6ap6I+Vp1Tsx2kLuCgKqG2JRKRp1RFKzpK0/Iq53f6iuLEJdMcr6vHko2CoKB0XQtJr3m30p309XM28baDP4X2V1oU4ESyo5i6gZmKoZVKGBj0Qd7PPdoc/gH/LwvnPHdgMKgObUb7vbzdCJmrq/6egOOa3P/OA8WXA44S6ffjjJYK1bJYUYq0y7va2pWcjmCL6Lj5/Ah+/XG/1N6XflgrVCtngyP7jdlmqMyjAOZzB8yAambWqUXkyGWFB0nQqIAjF7Y31qAkW5sEDIi4fNaz/ArhspbumXb3E4AocsQwpS3ykJmojYCErKc5oCh8dOo2Tk3LqT4KQHTx9X/3umbdnUnTk06XAzUQ4Q2vNv0HK4eeNvea9djpbK0rh8j1xLvniwirdyvCqOtoBfVqlPItJAQhlxz0iIjUmllhn+okV0APY3+cTaM7TzGTUyvMoZOlmRklhqB8TBQ9FQFQ4Q4OdN4WDxSjrjEuirqM11Uz+alLRYBRUqhfvgJTvq9CwT4+gHqUSw3Rul8ZgCY7XxajMcYjUrOt3Oho6Kb"
       },
       success: function (res) {
         if (res.code === 10000) {
           studioDetail = res.msg
+          initWebsocket()
+          var clientH = document.documentElement.clientHeight;
+          var clientW = document.documentElement.clientWidth;
           var player = videojs('example_video_1', {
             muted: true,
             controls: true,
-            height: document.documentElement.clientHeight || '100%',
-            width: document.documentElement.clientWidth || '100%',
+            height: (isIOS ? clientH : (clientH + 60)) || "100%",
+            width: clientW || '100%',
             loop: true,
             sources: [{
               type: "application/x-mpegURL",
@@ -637,15 +645,17 @@
             }]
             // 更多配置.....
           }, function (params) {
-            var currentHeight = document.documentElement.clientHeight
             // exitFullscreen()
             $("video").on('play', function (res) {
               var $video = $('video');
-              $video[0].addEventListener('x5videoenterfullscreen', function () {
-                $video.addClass('video');
+              $video[0].addEventListener('x5videoexitfullscreen', function () {
+                $('.video_wrap').height(clientH)
+                $('.content').height(clientH)
+                $('#example_video_1').height(clientH)
               });
+              // var offsetY = $video[0].clientHeight - ($video[0].clientWidth * $video[0].videoHeight / $video[0].videoWidth)
               $video[0].style["object-position"] = "0px 0px"
-              $('.content').css('height', currentHeight + 'px')
+              $('.content').css('height', (isIOS ? clientH : (clientH + 60)) + 'px')
               var blocks = [];
               for (var i = 0; i < 24; i++) {
                 blocks.push('<div class="block"></div>');
@@ -679,6 +689,15 @@
       }
     }
   $(function () {
+    if (isAndroid) {
+      $('.video_wrap').height(document.documentElement.clientHeight + 60)
+    }
+    if (isIOS) {
+      alert("苹果果机！")
+      $('.video_wrap').height(document.documentElement.clientHeight)
+    }
+    
+    $('.video_wrap').width(document.documentElement.clientWidth)
     //获取直播间详情
     getDetail()
     //获取签名
@@ -690,7 +709,7 @@
         if (res.code === 10000) {
           console.log('返回', res.msg)
           wx.config({
-            debug: true, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
+            // debug: true, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
             appId: res.msg.appId, // 必填，公众号的唯一标识
             timestamp: res.msg.timestamp, // 必填，生成签名的时间戳
             nonceStr: res.msg.noncestr, // 必填，生成签名的随机串
@@ -719,12 +738,6 @@
         mui.toast('获取签名异常' + JSON.stringify(res))
       }
     })
-    $('.video_wrap').height(document.documentElement.clientHeight)
-    $('.video_wrap').width(document.documentElement.clientWidth)
-
-    initWebsocket()
-    var currentHeight = document.documentElement.clientHeight
-
     getGoldcoin()
     //选择货道
     $('#select_goods #okBtn').on('tap', function () {
@@ -784,6 +797,7 @@
   function startGame(id, way) {
     $('#select_goods').hide();
     $('#loading_wrap').show();
+    alert('开始游戏的roomid'+id)
     $http({
       url: '/auth/user/v2/start/game',
       data: {
@@ -796,6 +810,7 @@
           $('#loading_wrap').hide();
         } else {
           mui.toast(res.msg)
+          $('#loading_wrap').hide();
         }
       },
     })
@@ -804,7 +819,7 @@
   function initWebsocket() {
     //用户进入房间函数，每个用户进入房间，在线人数加1
     function Addpeople(data) {
-      console.log(data, '人数加一');
+      alert('人数加一')
       onlineStr = JSON.parse(data).Online
       window.setTimeout(function () {
         $('#online_txt').html(onlineStr + '人')
@@ -840,6 +855,7 @@
     }
     //注册回调函数
     RegisterCallBackFunc(Addpeople, GameEnd, Kickout, Serverclose);
+    alert('链接socket roomid'+studioDetail.RoomId + 'uid' + localStorage.getItem('uid'))
     WebSocketStart("ws://211.149.179.254:5250?room=" + studioDetail.RoomId+ "&uid=" + localStorage.getItem('uid'))
   }
 </script>
