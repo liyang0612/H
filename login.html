@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>授权登录</title>
+</head>
+<body>
+</body>
+  <script>
+    window.onload = function (e) {
+      var searchUrl = window.location.search.slice(1)
+      var searchArr = searchUrl.split('&')
+      var searchParams = {}
+      searchArr.forEach(function(res) {
+        var key = res.split('=')[0]
+        var val = res.split('=')[1]
+        searchParams[key] = val
+      })
+      var redirectUrl = encodeURIComponent('http://h5game.jktwo.com/redirect_uri.html?page='+searchParams.page+'&ID='+searchParams.ID)
+      window.location.href = 'https://open.weixin.qq.com/connect/oauth2/authorize?appid=wxd253c0abbe9a10cf&redirect_uri='+ redirectUrl +'&response_type=code&scope=snsapi_userinfo&state=123#wechat_redirect'
+    }
+  </script>
+</html>

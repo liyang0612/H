@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="stylesheet" href="../css/mui.min.css">
+  <title></title>
+</head>
+<body>
+  
+</body>
+  <script src="../js/mui.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/jquery.min.js"></script>
+  <script>
+    window.onload = function (e) {
+      var searchUrl = window.location.search.slice(1)
+      var searchArr = searchUrl.split('&')
+      var searchParams = {}
+      searchArr.forEach(function (res) {
+        var key = res.split('=')[0]
+        var val = res.split('=')[1]
+        searchParams[key] = val
+      })
+      window.localStorage.setItem('code', searchParams.code)
+      window.localStorage.setItem('ID', searchParams.ID)
+      $http({
+        url: '/auth/user/v2/wechat/h5/login',
+        data: {
+          code: searchParams.code
+        },
+        success: function (res) {
+          if (res.code == 10000) {
+            // mui.toast('登录成功！');
+            window.localStorage.setItem('token', res.msg.token)
+            window.localStorage.setItem('openid', res.msg.openid)
+            window.localStorage.setItem('uid', res.msg.uid)
+            if (searchParams.page == 'address') {
+              window.location.href = './me_adress_add.html?token='+res.msg.token
+            } else if (searchParams.page == 'studio') {
+              window.location.href = './studio.html'
+            }
+          } else {
+            mui.toast(res.msg);
+          }
+        }
+      })
+    }
+  </script>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>videojs支持hls直播实例</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+
+  <link href="https://cdn.bootcss.com/video.js/7.5.0/alt/video-js-cdn.css" rel="stylesheet">
+</head>
+<style>
+.test {
+  position: fixed;
+  top: 0;
+  z-index: 9999;
+  color: #fff;
+}
+</style>
+<body>
+
+  <div>
+    <video id="roomVideo" controls class="video-js vjs-default-skin vjs-big-play-centered" preload="auto"
+      x-webkit-airplay="true"  x5-video-player-type="h5" x5-video-player-fullscreen="true" x5-playsinline="true" webkit-playsinline="true" playsinline="true">
+      <!-- <source src="http://fd.jktwo.com/live/40871_7129c404c6a772a26414a0c6ec6ad85b.m3u8" type="application/x-mpegURL"> -->
+      <source src="./test.mp4" type="video/mp4">
+    </video>
+  </div>
+<div id="test">23</div>
+  <script src="https://cdn.bootcss.com/video.js/7.5.0/video.min.js"></script>
+  <script src="https://cdn.bootcss.com/videojs-contrib-hls/5.15.0/videojs-contrib-hls.min.js"></script>
+  <script src="./js/jquery.min.js"></script>
+  <script type="text/javascript">
+  alert(window.localStorage.getItem('code'))
+    var myPlayer = videojs('roomVideo', {
+      muted: true,
+      controls: true,
+      height: 500,
+      width: 300,
+      // loop: true,
+      // autoplay: true,
+      // 更多配置.....
+    }, function (params) {
+      $("video").on('play', function (res) {
+        $('#test').addClass('test')
+      })
+    })
+    $(function() {
+      // $('html').on('touchstart', function () {
+      //   $("video")[0].play();
+      // });
+      // 兼容微信(微信可以自动播放)
+      // document.addEventListener("WeixinJSBridgeReady", function () {
+      //   $("video")[0].play();
+      // }, false);
+    })
+  </script>
+
+</body>
+
+</html>
