@@ -11,7 +11,7 @@
   <link href="../css/global.css" rel="stylesheet" />
   <!--引入播放器样式-->
   <link href="https://cdn.bootcss.com/video.js/7.5.0/alt/video-js-cdn.css" rel="stylesheet">
-  <script src="https://cdn.bootcss.com/video.js/7.5.0/video.min.js"></script>
+  <script src="./js/video.js"></script>
   <script src="https://cdn.bootcss.com/videojs-contrib-hls/5.15.0/videojs-contrib-hls.min.js"></script>
   <script src="http://res.wx.qq.com/open/js/jweixin-1.4.0.js"></script>
   <script src="../js/client.js"></script>
@@ -520,14 +520,141 @@
 <script src="../js/config.js"></script>
 <script src="../js/jquery.min.js"></script>
 <script>
-  var studioDetail = {}
-  var money = 0  //充值金币
-  var Balance = 0
-  var onlineStr = ''
-  var u = navigator.userAgent, app = navigator.appVersion;
-  var isAndroid = u.indexOf('Android') > -1 || u.indexOf('Linux') > -1; //g
-  var isIOS = !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/); //ios终端
+    var studioDetail = {}
+    var money = 0  //充值金币
+    var Balance = 0
+    var onlineStr = ''
+    var u = navigator.userAgent, app = navigator.appVersion;
+    var isAndroid = u.indexOf('Android') > -1 || u.indexOf('Linux') > -1; //g
+    var isIOS = !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/); //ios终端
 
+  window.onload = function (e) {
+    var searchUrl = window.location.search.slice(1)
+    var searchArr = searchUrl.split('&')
+    var searchParams = {}
+    searchArr.forEach(function (res) {
+      var key = res.split('=')[0]
+      var val = res.split('=')[1]
+      searchParams[key] = val
+    })
+    window.localStorage.setItem('code', searchParams.code)
+    window.localStorage.setItem('ID', searchParams.ID)
+    $http({
+      url: '/auth/user/v2/wechat/h5/login',
+      data: {
+        code: searchParams.code
+      },
+      success: function (res) {
+        if (res.code == 10000) {
+          mui.toast('登录成功！');
+          window.localStorage.setItem('token', res.msg.token)
+          window.localStorage.setItem('openid', res.msg.openid)
+          window.localStorage.setItem('uid', res.msg.uid)
+          $(function () {
+            if (isAndroid) {
+              $('.video_wrap').height(document.documentElement.clientHeight + 80)
+            }
+            if (isIOS) {
+              $('.video_wrap').height(document.documentElement.clientHeight)
+            }
+
+            $('.video_wrap').width(document.documentElement.clientWidth)
+            //获取直播间详情
+            getDetail()
+            //获取签名
+            $http({
+              type: 'get',
+              url: '/auth/user/v2/get/jssdk/config',
+              data: {},
+              success: function (res) {
+                if (res.code === 10000) {
+                  console.log('返回', res.msg)
+                  wx.config({
+                    // debug: true, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
+                    appId: res.msg.appId, // 必填，公众号的唯一标识
+                    timestamp: res.msg.timestamp, // 必填，生成签名的时间戳
+                    nonceStr: res.msg.noncestr, // 必填，生成签名的随机串
+                    signature: res.msg.signature,// 必填，签名
+                    jsApiList: ['chooseWXPay', 'updateAppMessageShareData'] // 必填，需要使用的JS接口列表
+                  });
+                  wx.ready(function () {
+                    // config信息验证后会执行ready方法，所有接口调用都必须在config接口获得结果之后，config是一个客户端的异步操作，所以如果需要在页面加载时就调用相关接口，则须把相关接口放在ready函数中调用来确保正确执行。对于用户触发时才调用的接口，则可以直接调用，不需要放在ready函数中。
+                    $('#gold_coin_pay #okBtn').on('tap', function () {
+                      if (!money) {
+                        mui.toast('请选择充值金额')
+                        return
+                      }
+                      recharge(parseInt(money))
+                    })
+                    // $('#shareBtn').on('tap', function () {
+                    //   shareFunc(localStorage.getItem('roomId'), localStorage.getItem('uid'))
+                    // })
+                    console.log('成功')
+                  });
+                  wx.error(function (res) {
+                    console.log('失败')
+                    // config信息验证失败会执行error函数，如签名过期导致验证失败，具体错误信息可以打开config的debug模式查看，也可以在返回的res参数中查看，对于SPA可以在这里更新签名。
+                  });
+                } else {
+                  mui.toast('获取签名失败' + JSON.stringify(res))
+                }
+              },
+              error: function () {
+                mui.toast('获取签名异常' + JSON.stringify(res))
+              }
+            })
+            getGoldcoin()
+            //选择货道
+            $('#select_goods #okBtn').on('tap', function () {
+              var way = $('.goods_num').text()
+              startGame(studioDetail.RoomId, way)
+            })
+            //取消选择货道
+            $('#select_goods #cancelBtn').on('tap', function () {
+              $('.dialog').hide();
+            })
+            //充值金币
+            $('#show_dialog_glod').on('tap', function () {
+              $('#gold_coin_pay').show()
+              if (Balance < 10) {
+                $('.wraning').text('金币不足，请先充值')
+              }
+            })
+            //关闭充值金币
+            $('.dialog').on('tap', function (e) {
+              if (e.target.classList[0] == 'dialog' || e.target.id == 'close') {
+                $('.dialog').hide()
+              }
+            })
+            //选择充值金额
+            $('.pay_btns .pay_btn').on('tap', function () {
+              $(this).addClass('active').siblings().removeClass('active')
+              money = $(this).find('.rmb').text().slice(0, -1)
+            })
+
+            $('#get_goods #cancelBtn').on('tap', function () {
+              window.location.href = "./me_adress_add.html"
+              // mui.openWindow({
+              //   url: './me_adress.html',
+              //   id: 'me_adress'
+              // })
+            })
+            $('#get_goods #okBtn').on('tap', function () {
+              $('#get_goods').hide()
+              // mui.openWindow({
+              //   url: './me_adress.html',
+              //   id: 'me_adress'
+              // })
+            })
+          })
+              
+        } else {
+          mui.toast(res.msg);
+          // window.history.back();
+        }
+      }
+    })
+  }
   function getOpenid() {
       $http({
         url: '/auth/user/v2/wechat/h5/get/openid',
@@ -671,103 +798,6 @@
       }
     })
   }
-  $(function () {
-    if (isAndroid) {
-      $('.video_wrap').height(document.documentElement.clientHeight + 80)
-    }
-    if (isIOS) {
-      $('.video_wrap').height(document.documentElement.clientHeight)
-    }
-    
-    $('.video_wrap').width(document.documentElement.clientWidth)
-    //获取直播间详情
-    getDetail()
-    //获取签名
-    $http({
-      type: 'get',
-      url: '/auth/user/v2/get/jssdk/config',
-      data: {},
-      success: function (res) {
-        if (res.code === 10000) {
-          console.log('返回', res.msg)
-          wx.config({
-            // debug: true, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
-            appId: res.msg.appId, // 必填，公众号的唯一标识
-            timestamp: res.msg.timestamp, // 必填，生成签名的时间戳
-            nonceStr: res.msg.noncestr, // 必填，生成签名的随机串
-            signature: res.msg.signature,// 必填，签名
-            jsApiList: ['chooseWXPay', 'updateAppMessageShareData'] // 必填，需要使用的JS接口列表
-          });
-          wx.ready(function () {
-            // config信息验证后会执行ready方法，所有接口调用都必须在config接口获得结果之后，config是一个客户端的异步操作，所以如果需要在页面加载时就调用相关接口，则须把相关接口放在ready函数中调用来确保正确执行。对于用户触发时才调用的接口，则可以直接调用，不需要放在ready函数中。
-            $('#gold_coin_pay #okBtn').on('tap', function () {
-              if (!money) {
-                mui.toast('请选择充值金额')
-                return
-              }
-              recharge(parseInt(money))
-            })
-            // $('#shareBtn').on('tap', function () {
-            //   shareFunc(localStorage.getItem('roomId'), localStorage.getItem('uid'))
-            // })
-            console.log('成功')
-          });
-          wx.error(function (res) {
-            console.log('失败')
-            // config信息验证失败会执行error函数，如签名过期导致验证失败，具体错误信息可以打开config的debug模式查看，也可以在返回的res参数中查看，对于SPA可以在这里更新签名。
-          });
-        } else {
-          mui.toast('获取签名失败' + JSON.stringify(res))
-        }
-      },
-      error: function() {
-        mui.toast('获取签名异常' + JSON.stringify(res))
-      }
-    })
-    getGoldcoin()
-    //选择货道
-    $('#select_goods #okBtn').on('tap', function () {
-      var way = $('.goods_num').text()
-      startGame(studioDetail.RoomId, way)
-    })
-    //取消选择货道
-    $('#select_goods #cancelBtn').on('tap', function () {
-      $('.dialog').hide();
-    })
-    //充值金币
-    $('#show_dialog_glod').on('tap', function () {
-      $('#gold_coin_pay').show()
-      if (Balance < 10) {
-        $('.wraning').text('金币不足，请先充值')
-      }
-    })
-    //关闭充值金币
-    $('.dialog').on('tap', function (e) {
-      if (e.target.classList[0] == 'dialog' || e.target.id == 'close') {
-        $('.dialog').hide()
-      }
-    })
-    //选择充值金额
-    $('.pay_btns .pay_btn').on('tap', function () {
-      $(this).addClass('active').siblings().removeClass('active')
-      money = $(this).find('.rmb').text().slice(0, -1)
-    })
-
-    $('#get_goods #cancelBtn').on('tap', function () {
-      window.location.href = "./me_adress_add.html"
-      // mui.openWindow({
-      //   url: './me_adress.html',
-      //   id: 'me_adress'
-      // })
-    })
-    $('#get_goods #okBtn').on('tap', function () {
-      $('#get_goods').hide()
-      // mui.openWindow({
-      //   url: './me_adress.html',
-      //   id: 'me_adress'
-      // })
-    })
-  })
   //获取金币
   function getGoldcoin() {
     $http({
@@ -823,22 +853,20 @@
     function GameEnd(res) {
       // if(!res.data) return false;
       var response = JSON.parse(res)
-      windwo.setTimeout(function() {
-        $('#get_goods').show()
-        // alert(localStorage.getItem('uid'))
-        // alert(response.Uid)
-        if (localStorage.getItem('uid') == response.Uid) {
-          $('#meGet').show()
-          $('#otherGet').hide()
-          $('#getGoodsUserName').text('你')
-        } else {
-          $('#meGet').hide()
-          $('#otherGet').show()
-          $('#getGoodsUserName').text(response.Name)
-        }
-        $('#goodsPrice').text(response.GoodPric)
-        $('#goodsName').text(response.GoodName)
-      },1000)
+      $('#get_goods').show()
+      // alert(localStorage.getItem('uid'))
+      // alert(response.Uid)
+      if (localStorage.getItem('uid') == response.Uid) {
+        $('#meGet').show()
+        $('#otherGet').hide()
+        $('#getGoodsUserName').text('你')
+      } else {
+        $('#meGet').hide()
+        $('#otherGet').show()
+        $('#getGoodsUserName').text(response.Name)
+      }
+      $('#goodsPrice').text(response.GoodPric)
+      $('#goodsName').text(response.GoodName)
     }
     //被服务器踢出回调
     function Kickout() {

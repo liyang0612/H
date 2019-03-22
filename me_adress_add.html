@@ -91,101 +91,130 @@
 		});
 	</script> -->
 	<script>
-		function getAdressStr(str) {
-			return str.slice(0, -1)
-		}
-		var cityList = [],
-			areaList = [];
-		(function(doc) {
-
-			mui.init();
-			var _getParam = function(obj, param) {
-				return obj[param] || '';
-			};
-			var searchStr = window.location.search
-			var editId = searchStr ? searchStr.slice(1).split('=')[1] : '';
-      //普通示例
-      $('#add_btn').on('tap', function (event) {
-        event.preventDefault();
-        var _this = $(this)
-        //表单验证
-        var name = $('#userName').val(),
-          phone = $('#telNumber').val(),
-          province = $('#province').text(),
-          city = $('#city').text(),
-          area = $('#area').text();
-        var vaild = false;
-        if (name == '') {
-          $('#userNameError').text('收货人不能为空');
-          vaild = true;
-        }
-        if (!province || !city || !area) {
-          $('#adressError').text('收货地址不能为空')
-          vaild = true;
-        }
-        if (phone == '') {
-          $('#telNumberError').text('手机号不能为空');
-          vaild = true;
-        }
-        if (vaild) {
-          return false;
-        }
-        addAdress(name, phone, province, city, area, _this)
-      })
-      //级联示例
-      var cityPicker3 = new mui.PopPicker({
-        layer: 3
-      });
-      cityPicker3.setData(cityData3);
-      var showCityPickerButton = doc.getElementById('showCityPicker3');
-      var cityResult3 = doc.getElementById('cityResult3');
-      showCityPickerButton.addEventListener('tap', function (event) {
-        cityPicker3.show(function (items) {
-          $('#province').text(_getParam(items[0], 'text'));
-          $('#city').text(_getParam(items[1], 'text'));
-          $('#area').text(_getParam(items[2], 'text'));
-        });
-      }, false);
-			
-			function getDetial() {
-				var editWebview = plus.webview.getWebviewById('me_adress_add_edit')
-				$('#userName').val(editWebview.Name)
-				$('#telNumber').val(editWebview.Phone)
-				$('#province').text(editWebview.Province)
-				$('#city').text(editWebview.City)
-				$('#area').text(editWebview.Area)
-				$('#adressDetail').val(editWebview.Street)
-			}
-
-			function addAdress(name, phone, province, city, area, _this) {
-         _this.attr('disabled', true)
-				$http({
-					url: '/auth/user/v2/add/receiving/address',
-					data: {
-						"token": localStorage.getItem('token'),
-						"name": name,
-						"phone": phone,
-						"province": province,
-						"city": city,
-						"area": area,
-						"street": $('#adressDetail').text()
-
-					},
-					success: function(res) {
-						if (res.code == 10000) {
-              mui.toast('添加成功！');
-              _this.attr('disabled', true)
-						} else {
-              // mui.toast(res.msg);
-              mui.toast('保存地址失败' + JSON.stringify(res))
-						}
+    window.onload = function (e) {
+        var searchUrl = window.location.search.slice(1)
+        var searchArr = searchUrl.split('&')
+        var searchParams = {}
+        searchArr.forEach(function (res) {
+          var key = res.split('=')[0]
+          var val = res.split('=')[1]
+          searchParams[key] = val
+        })
+        window.localStorage.setItem('code', searchParams.code)
+        window.localStorage.setItem('ID', searchParams.ID)
+        $http({
+          url: '/auth/user/v2/wechat/h5/login',
+          data: {
+            code: searchParams.code
           },
-          error: function(err) {
-            mui.toast('保存地址异常' + JSON.stringify(localStorage.getItem('token')))
+          success: function (res) {
+            if (res.code == 10000) {
+              mui.toast('登录成功！');
+              window.localStorage.setItem('token', res.msg.token)
+              window.localStorage.setItem('openid', res.msg.openid)
+              window.localStorage.setItem('uid', res.msg.uid)
+              function getAdressStr(str) {
+                return str.slice(0, -1)
+              }
+              var cityList = [],
+                areaList = [];
+              (function (doc) {
+
+                mui.init();
+                var _getParam = function (obj, param) {
+                  return obj[param] || '';
+                };
+                var searchStr = window.location.search
+                var editId = searchStr ? searchStr.slice(1).split('=')[1] : '';
+                //普通示例
+                $('#add_btn').on('tap', function (event) {
+                  event.preventDefault();
+                  var _this = $(this)
+                  //表单验证
+                  var name = $('#userName').val(),
+                    phone = $('#telNumber').val(),
+                    province = $('#province').text(),
+                    city = $('#city').text(),
+                    area = $('#area').text();
+                  var vaild = false;
+                  if (name == '') {
+                    $('#userNameError').text('收货人不能为空');
+                    vaild = true;
+                  }
+                  if (!province || !city || !area) {
+                    $('#adressError').text('收货地址不能为空')
+                    vaild = true;
+                  }
+                  if (phone == '') {
+                    $('#telNumberError').text('手机号不能为空');
+                    vaild = true;
+                  }
+                  if (vaild) {
+                    return false;
+                  }
+                  addAdress(name, phone, province, city, area, _this)
+                })
+                //级联示例
+                var cityPicker3 = new mui.PopPicker({
+                  layer: 3
+                });
+                cityPicker3.setData(cityData3);
+                var showCityPickerButton = doc.getElementById('showCityPicker3');
+                var cityResult3 = doc.getElementById('cityResult3');
+                showCityPickerButton.addEventListener('tap', function (event) {
+                  cityPicker3.show(function (items) {
+                    $('#province').text(_getParam(items[0], 'text'));
+                    $('#city').text(_getParam(items[1], 'text'));
+                    $('#area').text(_getParam(items[2], 'text'));
+                  });
+                }, false);
+
+                function getDetial() {
+                  var editWebview = plus.webview.getWebviewById('me_adress_add_edit')
+                  $('#userName').val(editWebview.Name)
+                  $('#telNumber').val(editWebview.Phone)
+                  $('#province').text(editWebview.Province)
+                  $('#city').text(editWebview.City)
+                  $('#area').text(editWebview.Area)
+                  $('#adressDetail').val(editWebview.Street)
+                }
+
+                function addAdress(name, phone, province, city, area, _this) {
+                  _this.attr('disabled', true)
+                  $http({
+                    url: '/auth/user/v2/add/receiving/address',
+                    data: {
+                      "token": localStorage.getItem('token'),
+                      "name": name,
+                      "phone": phone,
+                      "province": province,
+                      "city": city,
+                      "area": area,
+                      "street": $('#adressDetail').text()
+
+                    },
+                    success: function (res) {
+                      if (res.code == 10000) {
+                        mui.toast('添加成功！');
+                        _this.attr('disabled', true)
+                      } else {
+                        // mui.toast(res.msg);
+                        mui.toast('保存地址失败' + JSON.stringify(res))
+                      }
+                    },
+                    error: function (err) {
+                      mui.toast('保存地址异常' + JSON.stringify(localStorage.getItem('token')))
+                    }
+                  })
+                }
+              })(document);
+            } else {
+              mui.toast(res.msg);
+              // window.history.back();
+            }
           }
-				})
+        })
       }
-      
-		})(document);
+		
 	</script>
 </html>
